@@ -90,7 +90,8 @@ func tailFile(file *os.File, logEntries chan<- LogEntry) {
 
 	// In the case that a line gets split across multiple reads or writes, we
 	// need to keep track of the partial line read until a new line
-	var partial string
+	// Use a strings.Builder to efficiently build the line as it is read.
+	var partial strings.Builder
 
 	for {
 		// Use ReadString to read until the next newline character, or the EOF if
@@ -100,14 +101,15 @@ func tailFile(file *os.File, logEntries chan<- LogEntry) {
 
 		// Encountered a newline, so we have a complete line to process.
 		if err == nil {
-			text := partial + strings.TrimRight(line, "\n")
-
-			// Reset partial to potnetiall grab the next line if split across writes.
-			partial = ""
+			partial.WriteString(line)
+			text := strings.TrimRight(partial.String(), "\n")
 
 			if text != "" {
 				logEntries <- LogEntry{File: file.Name(), Text: text}
 			}
+
+			// Reset partial to potnetiall grab the next line if split across writes.
+			partial.Reset()
 
 			continue
 		}
@@ -118,7 +120,7 @@ func tailFile(file *os.File, logEntries chan<- LogEntry) {
 		// line.
 		if err == io.EOF {
 			if line != "" {
-				partial += line
+				partial.WriteString(line)
 			}
 
 			time.Sleep(500 * time.Millisecond)
