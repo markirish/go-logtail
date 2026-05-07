@@ -21,10 +21,10 @@ This project also serves as an opportunity to improve my Go skills while learnin
 
 ## Concepts Practiced
 
-This project explores several core Go concepts, including:
+This project explores core Go concepts, including:
 
 - concurrency
 - channels
 - goroutines
-- the `flag`, `fmt`, and `os` standard libraries
+- Go standard libraries including `bufio`, `flag`, `fmt`, `io`, `os`, and `strings`
 - terminal formatting and ANSI escape sequences

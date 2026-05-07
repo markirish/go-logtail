@@ -3,17 +3,12 @@ package main
 import (
 	"bufio"
 	"flag"
-	"fmt"
 	"io"
 	"os"
 	"strings"
 	"time"
-)
 
-const (
-	ANSIColorRed   = "\033[31m"
-	ANSIColorGreen = "\033[32m"
-	ANSIColorReset = "\033[0m"
+	"github.com/markirish/go-logtail/internal/parser"
 )
 
 type LogEntry struct {
@@ -36,7 +31,7 @@ func main() {
 
 	for _, fileName := range fileNames {
 		if *debug {
-			fmt.Println("DEBUG: Checking file:", fileName)
+			parser.PrintLog("[DEBUG]: Checking file: %s\n", fileName)
 		}
 
 		fileInfo, err := os.Stat(fileName)
@@ -44,22 +39,22 @@ func main() {
 			fileNotFound = true
 			if os.IsNotExist(err) {
 				if *debug {
-					fmt.Printf("DEBUG: %s%s not found%s\n", ANSIColorRed, fileName, ANSIColorReset)
+					parser.PrintLog("[DEBUG]: %s not found\n", fileName)
 				}
 			} else {
 				if *debug {
-					fmt.Printf("%sDEBUG: could not stat %s: %v%s\n", ANSIColorRed, fileName, err, ANSIColorReset)
+					parser.PrintLog("[DEBUG]: could not stat %s: %v\n", fileName, err)
 				}
 			}
 			continue
 		} else {
 			if *debug {
-				fmt.Printf("DEBUG: %s found\n", fileName)
+				parser.PrintLog("[DEBUG]: %s found\n", fileName)
 			}
 			// The file exists, so we can start tailing it.
 			file, err := os.Open(fileName)
 			if err != nil {
-				logEntries <- LogEntry{File: fileInfo.Name(), Text: fmt.Sprintf("error opening file: %v\n", err)}
+				logEntries <- LogEntry{File: fileInfo.Name(), Text: parser.GenerateLog("error opening file: %v\n", err)}
 				continue
 			}
 			go tailFile(file, logEntries)
@@ -67,13 +62,13 @@ func main() {
 	}
 
 	if fileNotFound {
-		fmt.Printf("%sERROR: one or more files were not found%s\n", ANSIColorRed, ANSIColorReset)
+		parser.PrintLog("[ERROR]: one or more files were not found\n")
 		os.Exit(1)
 	}
 
 	// Print log entries as they come in.
 	for entry := range logEntries {
-		fmt.Printf("[%s] %s\n", entry.File, entry.Text)
+		parser.PrintLog("[%s]: %s\n", entry.File, entry.Text)
 	}
 }
 
@@ -82,7 +77,7 @@ func tailFile(file *os.File, logEntries chan<- LogEntry) {
 
 	_, err := file.Seek(0, io.SeekEnd)
 	if err != nil {
-		logEntries <- LogEntry{File: file.Name(), Text: fmt.Sprintf("error seeking file: %v\n", err)}
+		logEntries <- LogEntry{File: file.Name(), Text: parser.GenerateLog("error seeking file: %v\n", err)}
 		return
 	}
 
@@ -130,7 +125,7 @@ func tailFile(file *os.File, logEntries chan<- LogEntry) {
 		// Encountered an error that wasn't EOF! Log it and exit the goroutine.
 		logEntries <- LogEntry{
 			File: file.Name(),
-			Text: fmt.Sprintf("error reading file: %v", err),
+			Text: parser.GenerateLog("error reading file: %v", err),
 		}
 		return
 	}
